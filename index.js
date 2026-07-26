@@ -3,51 +3,40 @@ globalThis.crypto = crypto.webcrypto;
 
 import pkg from "@whiskeysockets/baileys";
 import pino from "pino";
+import qrcode from "qrcode-terminal";
 
 const { default: makeWASocket, useMultiFileAuthState } = pkg;
 
 async function startBot() {
+
   const { state, saveCreds } = await useMultiFileAuthState("session");
 
   const sock = makeWASocket({
     auth: state,
     logger: pino({ level: "silent" }),
-    browser: ["MagebaBot", "Chrome", "1.0.0"],
-    connectTimeoutMs: 60000,
-    keepAliveIntervalMs: 10000
+    browser: ["MagebaBot", "Chrome", "1.0.0"]
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", async ({ connection }) => {
+  sock.ev.on("connection.update", (update) => {
+
+    const { connection, qr } = update;
+
+    if (qr) {
+      console.log("Scan this QR code:");
+      qrcode.generate(qr, { small: true });
+    }
 
     if (connection === "open") {
-      console.log("✅ MagebaBot connected!");
+      console.log("✅ MagebaBot connected successfully!");
     }
 
     if (connection === "close") {
-      console.log("⚠️ Connection closed - waiting...");
+      console.log("❌ Connection closed");
     }
+
   });
-
-
-  if (!state.creds.registered) {
-
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
-    try {
-      const code = await sock.requestPairingCode("27792530518");
-
-      console.log("====================");
-      console.log("PAIRING CODE:", code);
-      console.log("====================");
-
-      console.log("Waiting for WhatsApp linking...");
-      
-    } catch (err) {
-      console.log("Pairing error:", err.message);
-    }
-  }
 }
 
 startBot();
