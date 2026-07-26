@@ -14,17 +14,19 @@ async function startBot() {
   const sock = makeWASocket({
     auth: state,
     logger: pino({ level: "silent" }),
-    browser: ["MagebaBot", "Chrome", "1.0.0"]
+    browser: ["MagebaBot", "Chrome", "1.0.0"],
+    connectTimeoutMs: 60000,
+    keepAliveIntervalMs: 10000
   });
 
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", (update) => {
 
-    const { connection, qr } = update;
+    const { connection, qr, lastDisconnect } = update;
 
     if (qr) {
-      console.log("Scan this QR code:");
+      console.log("SCAN THIS QR CODE:");
       qrcode.generate(qr, { small: true });
     }
 
@@ -34,9 +36,15 @@ async function startBot() {
 
     if (connection === "close") {
       console.log("❌ Connection closed");
+
+      console.log(
+        "Reason:",
+        lastDisconnect?.error?.message || "Unknown reason"
+      );
     }
 
   });
+
 }
 
 startBot();
