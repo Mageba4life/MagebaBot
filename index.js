@@ -1,5 +1,6 @@
 import crypto from "crypto";
 globalThis.crypto = crypto.webcrypto;
+
 import pkg from "@whiskeysockets/baileys";
 import pino from "pino";
 
@@ -11,29 +12,37 @@ async function startBot() {
 
   const sock = makeWASocket({
     auth: state,
-    logger: pino({ level: "silent" })
+    logger: pino({ level: "silent" }),
+    browser: ["MagebaBot", "Chrome", "1.0.0"]
   });
-
-  if (!sock.authState?.creds?.registered) {
-    const phoneNumber = "27792530518"; // put your number here
-    const code = await sock.requestPairingCode(phoneNumber);
-    console.log("PAIRING CODE:", code);
-  }
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", ({ connection }) => {
+  sock.ev.on("connection.update", async (update) => {
+    const { connection } = update;
 
     if (connection === "open") {
-      console.log("✅ MagebaBot connected!");
+      console.log("✅ MagebaBot connected successfully!");
     }
 
     if (connection === "close") {
       console.log("❌ Connection closed");
-      startBot();
     }
-
   });
+
+  // WhatsApp pairing code
+  if (!state.creds.registered) {
+
+    const phoneNumber = "27792530518";
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const code = await sock.requestPairingCode(phoneNumber);
+
+    console.log("================================");
+    console.log("PAIRING CODE:", code);
+    console.log("================================");
+  }
 }
 
 startBot();
