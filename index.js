@@ -7,6 +7,8 @@ import qrcode from "qrcode-terminal";
 
 const { default: makeWASocket, useMultiFileAuthState } = pkg;
 
+console.log("🚀 MagebaBot is starting...");
+
 async function startBot() {
 
   const { state, saveCreds } = await useMultiFileAuthState("session");
@@ -14,32 +16,31 @@ async function startBot() {
   const sock = makeWASocket({
     auth: state,
     logger: pino({ level: "silent" }),
-    browser: ["MagebaBot", "Chrome", "1.0.0"],
-    connectTimeoutMs: 60000,
-    keepAliveIntervalMs: 10000
+    browser: ["MagebaBot", "Chrome", "1.0.0"]
   });
 
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", (update) => {
 
+    console.log("📡 WhatsApp update received");
+
     const { connection, qr, lastDisconnect } = update;
 
     if (qr) {
-      console.log("SCAN THIS QR CODE:");
+      console.log("📱 SCAN QR CODE:");
       qrcode.generate(qr, { small: true });
     }
 
     if (connection === "open") {
-      console.log("✅ MagebaBot connected successfully!");
+      console.log("✅ MagebaBot CONNECTED!");
     }
 
     if (connection === "close") {
       console.log("❌ Connection closed");
 
       console.log(
-        "Reason:",
-        lastDisconnect?.error?.message || "Unknown reason"
+        lastDisconnect?.error?.message || "No reason given"
       );
     }
 
