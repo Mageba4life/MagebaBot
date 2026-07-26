@@ -1,3 +1,5 @@
+import crypto from "crypto";
+globalThis.crypto = crypto.webcrypto;
 import pkg from "@whiskeysockets/baileys";
 import pino from "pino";
 
