@@ -1,13 +1,12 @@
 import crypto from "crypto";
 globalThis.crypto = crypto.webcrypto;
 
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason
-} from "@whiskeysockets/baileys";
-
+import pkg from "@whiskeysockets/baileys";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
+
+const makeWASocket = pkg.default;
+const { useMultiFileAuthState, DisconnectReason } = pkg;
 
 console.log("🚀 MagebaBot is starting...");
 
@@ -28,7 +27,7 @@ async function startBot() {
     const { connection, qr, lastDisconnect } = update;
 
     if (qr) {
-      console.log("📱 SCAN THIS QR CODE:");
+      console.log("📱 SCAN THIS QR CODE WITH WHATSAPP:");
       qrcode.generate(qr, { small: true });
     }
 
@@ -37,17 +36,16 @@ async function startBot() {
     }
 
     if (connection === "close") {
-
       const reason =
         lastDisconnect?.error?.output?.statusCode;
 
       console.log("❌ Connection closed:", reason);
 
       if (reason !== DisconnectReason.loggedOut) {
-        console.log("🔄 Reconnecting...");
-        startBot();
+        console.log("🔄 Restarting connection...");
+        setTimeout(() => startBot(), 5000);
       } else {
-        console.log("⚠️ Logged out. Delete session and scan again.");
+        console.log("⚠️ Logged out. Delete session and scan QR again.");
       }
     }
 
