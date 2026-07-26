@@ -1,0 +1,2 @@
+# MagebaBot
+WhatsApp bot user
