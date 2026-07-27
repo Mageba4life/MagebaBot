@@ -1,15 +1,16 @@
 import pino from "pino";
 import makeWASocket, {
-  useMultiFileAuthState
+  useMultiFileAuthState,
+  DisconnectReason
 } from "@whiskeysockets/baileys";
 
 console.log("🚀 MagebaBot is starting...");
 
-const phoneNumber = "27792530518";
+const PHONE_NUMBER = "27792530518"; // 0792530518 with South Africa code
 
 async function startBot() {
 
-  const { state, saveCreds } = await useMultiFileAuthState("session");
+  const { state, saveCreds } = await useMultiFileAuthState("./session");
 
   const sock = makeWASocket({
     auth: state,
@@ -21,15 +22,10 @@ async function startBot() {
 
   sock.ev.on("connection.update", async (update) => {
 
-    const { connection } = update;
+    const { connection, lastDisconnect } = update;
 
     if (connection === "connecting") {
       console.log("🔄 Connecting...");
-      
-      if (!sock.authState?.creds?.registered) {
-        const code = await sock.requestPairingCode(phoneNumber);
-        console.log("🔑 YOUR WHATSAPP PAIRING CODE:", code);
-      }
     }
 
     if (connection === "open") {
@@ -37,11 +33,35 @@ async function startBot() {
     }
 
     if (connection === "close") {
-      console.log("❌ Connection closed");
+
+      const reason =
+        lastDisconnect?.error?.output?.statusCode;
+
+      console.log("❌ Connection closed:", reason);
+
+      if (reason !== DisconnectReason.loggedOut) {
+        console.log("🔁 Restarting...");
+        setTimeout(startBot, 5000);
+      }
+    }
+
+    if (!state.creds.registered) {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        const code = await sock.requestPairingCode(PHONE_NUMBER);
+
+        console.log("🔑 YOUR WHATSAPP PAIRING CODE:", code);
+
+      } catch (error) {
+        console.log("❌ Pairing code error:", error.message);
+      }
     }
 
   });
 
 }
 
-startBot();
+startBot().catch(err => {
+  console.log("❌ Fatal error:", err);
+});
