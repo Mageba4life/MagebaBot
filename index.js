@@ -6,7 +6,7 @@ import makeWASocket, {
 
 console.log("🚀 MagebaBot is starting...");
 
-const PHONE_NUMBER = "27792530518"; // 0792530518 with South Africa code
+const PHONE_NUMBER = "27792530518";
 
 async function startBot() {
 
@@ -20,13 +20,21 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", async (update) => {
+  // Request pairing code ONLY ONCE
+  if (!state.creds.registered) {
+    setTimeout(async () => {
+      try {
+        const code = await sock.requestPairingCode(PHONE_NUMBER);
+        console.log("🔑 WHATSAPP PAIRING CODE:", code);
+      } catch (err) {
+        console.log("❌ Pairing error:", err.message);
+      }
+    }, 3000);
+  }
+
+  sock.ev.on("connection.update", (update) => {
 
     const { connection, lastDisconnect } = update;
-
-    if (connection === "connecting") {
-      console.log("🔄 Connecting...");
-    }
 
     if (connection === "open") {
       console.log("✅ MagebaBot CONNECTED!");
@@ -40,28 +48,14 @@ async function startBot() {
       console.log("❌ Connection closed:", reason);
 
       if (reason !== DisconnectReason.loggedOut) {
-        console.log("🔁 Restarting...");
-        setTimeout(startBot, 5000);
-      }
-    }
-
-    if (!state.creds.registered) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        const code = await sock.requestPairingCode(PHONE_NUMBER);
-
-        console.log("🔑 YOUR WHATSAPP PAIRING CODE:", code);
-
-      } catch (error) {
-        console.log("❌ Pairing code error:", error.message);
+        console.log("🔄 Restarting in 10 seconds...");
+        setTimeout(startBot, 10000);
       }
     }
 
   });
-
 }
 
 startBot().catch(err => {
-  console.log("❌ Fatal error:", err);
+  console.log("❌ Fatal:", err);
 });
