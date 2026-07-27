@@ -1,14 +1,14 @@
-import pkg from "@whiskeysockets/baileys";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
-
-const makeWASocket = pkg.default;
-const { useMultiFileAuthState, DisconnectReason } = pkg;
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason
+} from "@whiskeysockets/baileys";
 
 console.log("🚀 MagebaBot is starting...");
 
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("./session");
+  const { state, saveCreds } = await useMultiFileAuthState("session");
 
   const sock = makeWASocket({
     auth: state,
@@ -22,7 +22,7 @@ async function startBot() {
     const { connection, qr, lastDisconnect } = update;
 
     if (qr) {
-      console.log("📱 SCAN THIS QR CODE WITH WHATSAPP:");
+      console.log("📱 SCAN QR CODE WITH WHATSAPP:");
       qrcode.generate(qr, { small: true });
     }
 
@@ -37,14 +37,11 @@ async function startBot() {
       console.log("❌ Connection closed:", reason);
 
       if (reason !== DisconnectReason.loggedOut) {
-        console.log("⚠️ Connection stopped. Restart after fixing.");
-      } else {
-        console.log("⚠️ Logged out. Delete session and scan again.");
+        console.log("🔄 Restarting...");
+        setTimeout(startBot, 5000);
       }
     }
   });
 }
 
-startBot().catch((err) => {
-  console.error("❌ Fatal error:", err);
-});
+startBot();
