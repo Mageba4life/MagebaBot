@@ -1,17 +1,17 @@
 import crypto from "crypto";
 globalThis.crypto = crypto.webcrypto;
 
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason
-} from "@whiskeysockets/baileys";
-
+import pkg from "@whiskeysockets/baileys";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
+
+const makeWASocket = pkg.default;
+const { useMultiFileAuthState, DisconnectReason } = pkg;
 
 console.log("🚀 MagebaBot is starting...");
 
 async function startBot() {
+
   const { state, saveCreds } = await useMultiFileAuthState("./session");
 
   const sock = makeWASocket({
@@ -22,9 +22,12 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", ({ connection, qr, lastDisconnect }) => {
+  sock.ev.on("connection.update", (update) => {
+
+    const { connection, qr, lastDisconnect } = update;
+
     if (qr) {
-      console.log("📱 Scan this QR code:");
+      console.log("📱 SCAN THIS QR CODE:");
       qrcode.generate(qr, { small: true });
     }
 
@@ -33,17 +36,19 @@ async function startBot() {
     }
 
     if (connection === "close") {
-      const code = lastDisconnect?.error?.output?.statusCode;
-      console.log("❌ Connection closed:", code);
 
-      if (code !== DisconnectReason.loggedOut) {
-        console.log("🔄 Reconnecting in 5 seconds...");
-        setTimeout(startBot, 5000);
-      } else {
-        console.log("⚠️ Logged out. Delete the session folder and scan again.");
+      const reason =
+        lastDisconnect?.error?.output?.statusCode;
+
+      console.log("❌ Connection closed:", reason);
+
+      if (reason !== DisconnectReason.loggedOut) {
+        console.log("⚠️ Please restart manually after fixing.");
       }
+
     }
+
   });
 }
 
-startBot().catch(console.error);
+startBot();
