@@ -1,13 +1,14 @@
 import pino from "pino";
-import qrcode from "qrcode-terminal";
 import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason
+  useMultiFileAuthState
 } from "@whiskeysockets/baileys";
 
 console.log("🚀 MagebaBot is starting...");
 
+const phoneNumber = "27792530518";
+
 async function startBot() {
+
   const { state, saveCreds } = await useMultiFileAuthState("session");
 
   const sock = makeWASocket({
@@ -18,12 +19,17 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
-    const { connection, qr, lastDisconnect } = update;
+  sock.ev.on("connection.update", async (update) => {
 
-    if (qr) {
-      console.log("📱 SCAN QR CODE WITH WHATSAPP:");
-      qrcode.generate(qr, { small: true });
+    const { connection } = update;
+
+    if (connection === "connecting") {
+      console.log("🔄 Connecting...");
+      
+      if (!sock.authState?.creds?.registered) {
+        const code = await sock.requestPairingCode(phoneNumber);
+        console.log("🔑 YOUR WHATSAPP PAIRING CODE:", code);
+      }
     }
 
     if (connection === "open") {
@@ -31,17 +37,11 @@ async function startBot() {
     }
 
     if (connection === "close") {
-      const reason =
-        lastDisconnect?.error?.output?.statusCode;
-
-      console.log("❌ Connection closed:", reason);
-
-      if (reason !== DisconnectReason.loggedOut) {
-        console.log("🔄 Restarting...");
-        setTimeout(startBot, 5000);
-      }
+      console.log("❌ Connection closed");
     }
+
   });
+
 }
 
 startBot();
